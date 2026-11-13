@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>刀塔决策辅助原型</title>
+  <style>
+    :root {
+      --bg: #0e1117;
+      --panel: #171b24;
+      --panel-2: #1e2430;
+      --line: #2a3140;
+      --text: #e8edf5;
+      --muted: #8b95a8;
+      --radiant: #4ade80;
+      --radiant-dim: rgba(74, 222, 128, .14);
+      --dire: #f43f5e;
+      --dire-dim: rgba(244, 63, 94, .14);
+      --accent: #7dd3fc;
+      --accent-2: #c4b5fd;
+      --warn: #fbbf24;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text);
+      font-family: "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+      font-size: 14px; line-height: 1.55; }
+    body { min-height: 100vh; }
+    header {
+      padding: 22px 28px 10px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, #141924 0%, var(--bg) 100%);
+    }
+    header h1 { margin: 0 0 6px; font-size: 22px; letter-spacing: .04em; font-weight: 650; }
+    header h1 span { color: var(--accent); }
+    .sub { color: var(--muted); max-width: 980px; }
+    .badge { display: inline-block; margin-right: 8px; padding: 2px 8px; border-radius: 999px;
+      border: 1px solid var(--line); color: var(--warn); font-size: 12px; }
+    .wrap { display: grid; grid-template-columns: minmax(340px, 42%) 1fr; gap: 18px; padding: 18px 22px 40px; }
+    @media (max-width: 980px) { .wrap { grid-template-columns: 1fr; } }
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px 16px 14px; }
+    .card h2 { margin: 0 0 12px; font-size: 15px; font-weight: 650; color: var(--accent); letter-spacing: .04em; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+    label { color: var(--muted); font-size: 12px; }
+    input[type="number"], input[type="text"], select {
+      background: var(--panel-2); color: var(--text); border: 1px solid var(--line);
+      border-radius: 8px; padding: 6px 8px; min-width: 0;
+    }
+    input[type="number"] { width: 92px; }
+    button {
+      background: #243044; color: var(--text); border: 1px solid #3a465c; border-radius: 9px;
+      padding: 8px 12px; cursor: pointer; font-weight: 600;
+    }
+    button:hover { border-color: var(--accent); color: var(--accent); }
+    button.primary { background: linear-gradient(180deg, #2a6f97, #1d4e6e); border-color: #5bb7e0; }
+    button.ghost { background: transparent; }
+    .team { padding: 10px; border-radius: 10px; margin-bottom: 10px; }
+    .team.radiant { background: var(--radiant-dim); border: 1px solid rgba(74,222,128,.25); }
+    .team.dire { background: var(--dire-dim); border: 1px solid rgba(244,63,94,.25); }
+    .team h3 { margin: 0 0 8px; font-size: 13px; }
+    .team.radiant h3 { color: var(--radiant); }
+    .team.dire h3 { color: var(--dire); }
+    .hero-slots { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .hero-slot {
+      background: var(--panel-2); border: 1px dashed #3a4558; border-radius: 8px; min-height: 58px;
+      padding: 6px 6px 4px; cursor: pointer; text-align: center; font-size: 12px;
+    }
+    .hero-slot:hover { border-color: var(--accent); }
+    .hero-slot .hid { color: var(--muted); font-size: 10px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }
+    .stat { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .winbox { padding: 14px; border-radius: 12px; background: var(--panel-2); }
+    .bar { height: 16px; border-radius: 99px; background: #2a1420; overflow: hidden; display: flex; }
+    .bar .r { background: linear-gradient(90deg, #166534, #4ade80); height: 100%; }
+    .bar .d { background: linear-gradient(90deg, #f43f5e, #9f1239); height: 100%; }
+    .probs { display: flex; justify-content: space-between; margin-top: 6px; font-weight: 700; }
+    .probs .r { color: var(--radiant); }
+    .probs .d { color: var(--dire); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 6px 6px; border-bottom: 1px solid var(--line); text-align: left; }
+    th { color: var(--muted); font-weight: 600; }
+    .advice { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .opt { padding: 12px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); }
+    .opt.win { border-color: var(--radiant); }
+    .opt .delta { font-size: 20px; font-weight: 700; }
+    .opt .delta.pos { color: var(--radiant); }
+    .opt .delta.neg { color: var(--dire); }
+    .note, .disc { color: var(--muted); font-size: 12px; margin-top: 8px; }
+    .zones { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .chip { background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px; padding: 3px 9px; font-size: 12px; }
+    .meta { color: var(--muted); font-size: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; }
+    .overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.62); display: none;
+      align-items: flex-start; justify-content: center; padding: 40px 16px; z-index: 20; overflow: auto;
+    }
+    .overlay.show { display: flex; }
+    .picker { width: min(920px, 100%); background: var(--panel); border: 1px solid var(--line);
+      border-radius: 16px; padding: 14px; box-shadow: var(--shadow); }
+    .picker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 6px; max-height: 60vh; overflow: auto; margin-top: 10px; }
+    .ph {
+      background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 7px 8px;
+      cursor: pointer; font-size: 12px; text-align: left;
+    }
+    .ph:hover { border-color: var(--accent); }
+    .item-list { display: flex; flex-wrap: wrap; gap: 6px; max-height: 120px; overflow: auto; }
+    .item-chip { background: #243044; border-radius: 999px; padding: 3px 8px; font-size: 12px; cursor: pointer; }
+    .item-chip.on { background: #1d4e6e; border: 1px solid var(--accent); }
+    .expl { background: #141a24; border-left: 3px solid var(--accent-2); padding: 10px 12px; border-radius: 0 10px 10px 0; margin-top: 10px; }
+    .err { color: #fda4af; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>刀塔决策辅助<span>原型</span></h1>
+    <div class="sub">
+      <span class="badge">复盘 / 训练 / 教练用途</span>
+      数据来自 OpenDota 已解析比赛的真实快照与模型估计，不是编造数字。
+      Valve 限制在正式比赛中提供额外决策优势的第三方工具，请勿将本页用于天梯对局。
+    </div>
+  </header>
+  <div class="wrap">
+    <section>
+      <div class="card">
+        <h2>局面输入</h2>
+        <div class="row">
+          <button class="primary" id="btn-sample" type="button">载入真实对局片段</button>
+          <button class="ghost" id="btn-clear" type="button">清空</button>
+          <span class="note" id="sample-note"></span>
+        </div>
+        <div class="team radiant">
+          <h3>天辉阵容</h3>
+          <div class="hero-slots" id="rad-slots"></div>
+        </div>
+        <div class="team dire">
+          <h3>夜魇阵容</h3>
+          <div class="hero-slots" id="dire-slots"></div>
+        </div>
+        <div class="grid-2">
+          <div class="stat"><label>比赛分钟</label><input type="number" id="minute" value="20" min="0" max="120" /></div>
+          <div class="stat"><label>击杀差（天辉-夜魇）</label><input type="number" id="kills" value="0" /></div>
+          <div class="stat"><label>经济差（天辉）</label><input type="number" id="gold" value="0" step="100" /></div>
+          <div class="stat"><label>经验差（天辉）</label><input type="number" id="xp" value="0" step="100" /></div>
+          <div class="stat"><label>天辉掉塔</label><input type="number" id="rt" value="0" min="0" max="11" /></div>
+          <div class="stat"><label>夜魇掉塔</label><input type="number" id="dt" value="0" min="0" max="11" /></div>
+          <div class="stat"><label>天辉掉兵营</label><input type="number" id="rr" value="0" min="0" max="6" /></div>
+          <div class="stat"><label>夜魇掉兵营</label><input type="number" id="dr" value="0" min="0" max="6" /></div>
+          <div class="stat"><label>天辉肉山次数</label><input type="number" id="rros" value="0" min="0" max="8" /></div>
+          <div class="stat"><label>夜魇肉山次数</label><input type="number" id="dros" value="0" min="0" max="8" /></div>
+          <div class="stat">
+            <label>观察视角</label>
+            <select id="perspective"><option value="radiant">天辉</option><option value="dire">夜魇</option></select>
+          </div>
+          <div class="stat">
+            <label>我的英雄（出装/分区）</label>
+            <select id="own-hero"></select>
+          </div>
+        </div>
+        <div style="margin-top:10px">
+          <label>当前已有装备（点击多选）</label>
+          <input type="text" id="item-filter" placeholder="筛选装备名…" style="width:100%;margin:6px 0" />
+          <div class="item-list" id="item-list"></div>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <button class="primary" id="btn-run" type="button">计算建议</button>
+          <span class="note" id="run-note"></span>
+        </div>
+      </div>
+    </section>
+    <section>
+      <div class="card" style="margin-bottom:14px">
+        <h2>胜率估计</h2>
+        <div class="winbox" id="winbox">
+          <div class="bar"><div class="r" id="bar-r" style="width:50%"></div><div class="d" id="bar-d" style="width:50%"></div></div>
+          <div class="probs"><span class="r" id="p-r">天辉 --</span><span class="d" id="p-d">夜魇 --</span></div>
+          <div class="note" id="win-note">请先选择 5v5 阵容并计算。</div>
+        </div>
+        <div class="expl" id="explain">等待计算结果。</div>
+      </div>
+      <div class="card" style="margin-bottom:14px">
+        <h2>出装推荐（样本频次 / 胜率）</h2>
+        <div class="note" id="item-note">将展示样本数，冷门英雄可能很稀疏。</div>
+        <table>
+          <thead><tr><th>#</th><th>装备</th><th>样本数</th><th>胜率</th><th>平滑胜率</th><th>价格</th></tr></thead>
+          <tbody id="item-tbody"><tr><td colspan="6" class="note">暂无</td></tr></tbody>
+        </table>
+      </div>
+      <div class="card" style="margin-bottom:14px">
+        <h2>打肉山还是推塔</h2>
+        <div class="advice">
+          <div class="opt" id="opt-rosh">
+            <div>打肉山（特征 +1）</div>
+            <div class="delta" id="d-rosh">--</div>
+            <div class="note" id="p-rosh"></div>
+          </div>
+          <div class="opt" id="opt-tower">
+            <div>推掉一座塔（特征 +1）</div>
+            <div class="delta" id="d-tower">--</div>
+            <div class="note" id="p-tower"></div>
+          </div>
+        </div>
+        <div class="disc" id="obj-disc">此比较是模型特征扰动，不是因果效应。</div>
+      </div>
+      <div class="card" style="margin-bottom:14px">
+        <h2>活动区域提示（对线期热力图）</h2>
+        <div id="zone-hint" class="note">基于 lane_pos / lane_role，不是实时坐标。</div>
+        <div class="zones" id="zone-chips"></div>
+      </div>
+      <div class="card">
+        <h2>模型信息</h2>
+        <div class="meta" id="model-meta">加载中…</div>
+      </div>
+    </section>
+  </div>
+
+  <div class="overlay" id="overlay">
+    <div class="picker">
+      <div class="row">
+        <strong id="picker-title">选择英雄</strong>
+        <input type="text" id="hero-filter" placeholder="搜索中文或英文名…" style="flex:1" />
+        <button class="ghost" type="button" id="picker-close">关闭</button>
+      </div>
+      <div class="picker-grid" id="picker-grid"></div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  const state = {
+    heroes: [],
+    items: [],
+    radiant: [null, null, null, null, null],
+    dire: [null, null, null, null, null],
+    pickTarget: null,
+    currentItems: new Set(),
+  };
+
+  const $ = (id) => document.getElementById(id);
+  const heroById = (id) => state.heroes.find(h => h.id === Number(id));
+  const nameOf = (id) => {
+    const h = heroById(id);
+    return h ? (h.name_zh || h.localized_name) : "未选择";
+  };
+
+  function renderSlots() {
+    const fill = (el, arr, side) => {
+      el.innerHTML = arr.map((id, i) => {
+        const h = id ? heroById(id) : null;
+        return `<div class="hero-slot" data-side="${side}" data-idx="${i}">
+          <div>${h ? (h.name_zh || h.localized_name) : "点击选择"}</div>
+          <div class="hid">${h ? h.localized_name : (side === "radiant" ? "天辉 " : "夜魇 ") + (i+1)}</div>
+        </div>`;
+      }).join("");
+    };
+    fill($("rad-slots"), state.radiant, "radiant");
+    fill($("dire-slots"), state.dire, "dire");
+    const own = $("own-hero");
+    const prev = own.value;
+    const opts = [...state.radiant, ...state.dire].filter(Boolean);
+    own.innerHTML = opts.length
+      ? opts.map(id => `<option value="${id}">${nameOf(id)}</option>`).join("")
+      : `<option value="">请先选择阵容</option>`;
+    if (prev && opts.map(String).includes(String(prev))) own.value = prev;
+  }
+
+  function openPicker(side, idx) {
+    state.pickTarget = { side, idx };
+    $("picker-title").textContent = `选择${side === "radiant" ? "天辉" : "夜魇"}英雄 ${idx+1}`;
+    $("hero-filter").value = "";
+    renderPicker();
+    $("overlay").classList.add("show");
+    $("hero-filter").focus();
+  }
+
+  function renderPicker() {
+    const q = ($("hero-filter").value || "").trim().toLowerCase();
+    const used = new Set([...state.radiant, ...state.dire].filter(Boolean).map(Number));
+    const list = state.heroes.filter(h => {
+      if (!q) return true;
+      return (h.name_zh || "").includes(q) ||
+        (h.localized_name || "").toLowerCase().includes(q) ||
+        String(h.id) === q;
+    });
+    $("picker-grid").innerHTML = list.map(h => {
+      const taken = used.has(h.id) ? "opacity:.45" : "";
+      return `<div class="ph" data-id="${h.id}" style="${taken}">${h.name_zh || h.localized_name}<div class="hid">${h.localized_name}</div></div>`;
+    }).join("") || `<div class="note">没有匹配的英雄</div>`;
+  }
+
+  function bodyState() {
+    return {
+      minute: Number($("minute").value || 0),
+      radiant_gold_adv: Number($("gold").value || 0),
+      radiant_xp_adv: Number($("xp").value || 0),
+      kills_diff: Number($("kills").value || 0),
+      radiant_towers_lost: Number($("rt").value || 0),
+      dire_towers_lost: Number($("dt").value || 0),
+      radiant_rax_lost: Number($("rr").value || 0),
+      dire_rax_lost: Number($("dr").value || 0),
+      roshan_radiant: Number($("rros").value || 0),
+      roshan_dire: Number($("dros").value || 0),
+      radiant_heroes: state.radiant.slice(),
+      dire_heroes: state.dire.slice(),
+      perspective: $("perspective").value,
+      hero_id: Number($("own-hero").value || 0),
+      current_items: Array.from(state.currentItems),
+      is_radiant: $("perspective").value === "radiant",
+    };
+  }
+
+  function applySnapshot(s) {
+    state.radiant = (s.radiant_heroes || []).slice(0, 5);
+    state.dire = (s.dire_heroes || []).slice(0, 5);
+    while (state.radiant.length < 5) state.radiant.push(null);
+    while (state.dire.length < 5) state.dire.push(null);
+    $("minute").value = s.minute;
+    $("gold").value = Math.round(s.radiant_gold_adv || 0);
+    $("xp").value = Math.round(s.radiant_xp_adv || 0);
+    $("kills").value = s.kills_diff || 0;
+    $("rt").value = s.radiant_towers_lost || 0;
+    $("dt").value = s.dire_towers_lost || 0;
+    $("rr").value = s.radiant_rax_lost || 0;
+    $("dr").value = s.dire_rax_lost || 0;
+    $("rros").value = s.roshan_radiant || 0;
+    $("dros").value = s.roshan_dire || 0;
+    renderSlots();
+    if (state.radiant[0]) $("own-hero").value = state.radiant[0];
+  }
+
+  function pct(x) { return (Number(x) * 100).toFixed(1) + "%"; }
+  function signed(x) {
+    const n = Number(x);
+    const s = (n >= 0 ? "+" : "") + (n * 100).toFixed(2) + " pp";
+    return s;
+  }
+
+  function renderItemsTable(data) {
+    $("item-note").textContent = (data.note || "") +
+      `  匹配记录 ${data.matched_records || 0} 条，时间窗 ±${data.minute_window || "--"} 分钟。`;
+    const rows = data.items || [];
+    $("item-tbody").innerHTML = rows.length ? rows.map(r =>
+      `<tr><td>${r.rank}</td><td>${r.dname}</td><td>${r.count}</td><td>${pct(r.winrate)}</td><td>${pct(r.smoothed_winrate)}</td><td>${r.cost ?? "--"}</td></tr>`
+    ).join("") : `<tr><td colspan="6" class="note">该英雄在样本中几乎没有匹配的购买记录。</td></tr>`;
+  }
+
+  function renderObjective(d) {
+    $("d-rosh").textContent = signed(d.take_roshan.delta);
+    $("d-tower").textContent = signed(d.push_tower.delta);
+    $("d-rosh").className = "delta " + (d.take_roshan.delta >= 0 ? "pos" : "neg");
+    $("d-tower").className = "delta " + (d.push_tower.delta >= 0 ? "pos" : "neg");
+    $("p-rosh").textContent = "扰动后胜率 " + pct(d.take_roshan.win_prob);
+    $("p-tower").textContent = "扰动后胜率 " + pct(d.push_tower.win_prob);
+    $("opt-rosh").className = "opt" + (d.preferred === "roshan" ? " win" : "");
+    $("opt-tower").className = "opt" + (d.preferred === "tower" ? " win" : "");
+    $("obj-disc").textContent = d.disclaimer + " 基准胜率 " + pct(d.baseline_win_prob) + "。";
+  }
+
+  function renderZone(z) {
+    $("zone-hint").textContent = z.hint + "（" + (z.limitation || "") + "）";
+    $("zone-chips").innerHTML = (z.zone_distribution || []).slice(0, 6).map(x =>
+      `<span class="chip">${x.name_zh} ${(x.share * 100).toFixed(0)}%</span>`
+    ).join("");
+  }
+
+  async function run() {
+    const body = bodyState();
+    if (body.radiant_heroes.filter(Boolean).length !== 5 || body.dire_heroes.filter(Boolean).length !== 5) {
+      $("run-note").textContent = "请先选满双方各 5 名英雄。";
+      return;
+    }
+    $("run-note").textContent = "计算中…";
+    try {
+      const [win, items, obj, zone] = await Promise.all([
+        post("/api/predict_win", body),
+        post("/api/recommend_items", body),
+        post("/api/objective_advice", body),
+        post("/api/zone_hint", body),
+      ]);
+      $("bar-r").style.width = (win.radiant_win_prob * 100).toFixed(1) + "%";
+      $("bar-d").style.width = (win.dire_win_prob * 100).toFixed(1) + "%";
+      $("p-r").textContent = "天辉 " + pct(win.radiant_win_prob);
+      $("p-d").textContent = "夜魇 " + pct(win.dire_win_prob);
+      $("win-note").textContent = "当前视角（" + (win.perspective === "radiant" ? "天辉" : "夜魇") + "）胜率 " + pct(win.perspective_win_prob) + "。";
+      renderItemsTable(items);
+      renderObjective(obj);
+      renderZone(zone);
+      const exp = await post("/api/explain", { win, items, objective: obj, zone });
+      $("explain").textContent = exp.text || "";
+      $("run-note").textContent = "完成";
+    } catch (e) {
+      $("run-note").innerHTML = '<span class="err">' + e.message + "</span>";
+    }
+  }
+
+  async function post(url, body) {
+    const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || r.statusText);
+    return d;
+  }
+
+  function renderItemPicker() {
+    const q = ($("item-filter").value || "").trim().toLowerCase();
+    const list = state.items.filter(it => {
+      if (it.skipped) return false;
+      if ((it.cost || 0) < 200) return false;
+      if (!q) return true;
+      return (it.dname || "").toLowerCase().includes(q) || (it.key || "").includes(q);
+    }).slice(0, 80);
+    $("item-list").innerHTML = list.map(it => {
+      const on = state.currentItems.has(it.key) ? " on" : "";
+      return `<span class="item-chip${on}" data-key="${it.key}">${it.dname}</span>`;
+    }).join("");
+  }
+
+  async function loadCatalog() {
+    const [h, i, m] = await Promise.all([
+      fetch("/api/heroes").then(r => r.json()),
+      fetch("/api/items").then(r => r.json()),
+      fetch("/api/model_info").then(r => r.json()),
+    ]);
+    state.heroes = h.heroes || [];
+    state.items = i.items || [];
+    renderSlots();
+    renderItemPicker();
+    const auc = m.auc != null ? Number(m.auc).toFixed(3) : "--";
+    const ll = m.logloss != null ? Number(m.logloss).toFixed(3) : "--";
+    $("model-meta").innerHTML = [
+      ["样本场次", m.n_matches ?? "--"],
+      ["分钟快照", m.n_snapshots ?? "--"],
+      ["测试 AUC", auc],
+      ["测试 logloss", ll],
+      ["测试 Brier", m.brier != null ? Number(m.brier).toFixed(3) : "--"],
+      ["模型", m.backend || "--"],
+      ["训练/测试场次", (m.n_train_matches ?? "--") + " / " + (m.n_test_matches ?? "--")],
+      ["分组划分", m.grouped_split ? "按 match_id" : "--"],
+    ].map(x => `<div>${x[0]}</div><div>${x[1]}</div>`).join("") +
+      `<div style="grid-column:1/-1;margin-top:6px">${m.compliance || ""} 训练时间：${m.trained_at || ""}</div>`;
+  }
+
+  document.addEventListener("click", (ev) => {
+    const slot = ev.target.closest(".hero-slot");
+    if (slot) { openPicker(slot.dataset.side, Number(slot.dataset.idx)); return; }
+    const ph = ev.target.closest(".ph");
+    if (ph && state.pickTarget) {
+      const id = Number(ph.dataset.id);
+      state[state.pickTarget.side][state.pickTarget.idx] = id;
+      $("overlay").classList.remove("show");
+      renderSlots();
+    }
+    const chip = ev.target.closest(".item-chip");
+    if (chip) {
+      const k = chip.dataset.key;
+      if (state.currentItems.has(k)) state.currentItems.delete(k); else state.currentItems.add(k);
+      renderItemPicker();
+    }
+  });
+  $("picker-close").onclick = () => $("overlay").classList.remove("show");
+  $("overlay").addEventListener("click", (e) => { if (e.target.id === "overlay") $("overlay").classList.remove("show"); });
+  $("hero-filter").oninput = renderPicker;
+  $("item-filter").oninput = renderItemPicker;
+  $("btn-run").onclick = run;
+  $("btn-clear").onclick = () => {
+    state.radiant = [null,null,null,null,null];
+    state.dire = [null,null,null,null,null];
+    state.currentItems.clear();
+    ["minute","gold","xp","kills","rt","dt","rr","dr","rros","dros"].forEach((id,i) => $(id).value = id==="minute"?20:0);
+    renderSlots(); renderItemPicker(); $("sample-note").textContent = "";
+  };
+  $("btn-sample").onclick = async () => {
+    try {
+      const d = await fetch("/api/sample_snapshot").then(r => r.json());
+      applySnapshot(d.snapshot);
+      $("sample-note").textContent = "已载入比赛 " + d.snapshot.match_id + " 的第 " + d.snapshot.minute + " 分钟（真实切片）。";
+    } catch (e) { $("sample-note").textContent = "载入失败：" + e.message; }
+  };
+  loadCatalog().then(async () => {
+    if (new URLSearchParams(location.search).get("demo") === "1") {
+      try {
+        const d = await fetch("/api/sample_snapshot").then(r => r.json());
+        applySnapshot(d.snapshot);
+        $("sample-note").textContent = "已载入比赛 " + d.snapshot.match_id + " 的第 " + d.snapshot.minute + " 分钟（真实切片）。";
+        await run();
+      } catch (e) { $("sample-note").textContent = "演示载入失败：" + e.message; }
+    }
+  }).catch(e => { $("model-meta").textContent = "无法加载模型信息：" + e.message; });
+})();
+</script>
+</body>
+</html>
